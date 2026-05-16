@@ -1,5 +1,6 @@
 const express = require("express");
 const mysql = require("mysql2");
+const bcrypt = require("bcryptjs");
 const app = express()
 app.use(express.json());
 
@@ -12,16 +13,38 @@ app.get("/about", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-    console.log(req.body.name);
-res.send(req.body.name + "has registered with" + req.body.email);
-    connection.query("INSERT INTO users (name, email) VALUES (?,?)", [req.body.name, req.body.email], (err , result) => {
+    
+   const hashedpassward = bcrypt.hashSync(req.body.password, 10);
+
+
+    connection.query("INSERT INTO users (name, email, password) VALUES (?,?,?)", [req.body.name, req.body.email, hashedpassward], (err , result) => {
         if (err) {
             console.log("not saved", err);
             return;
         }
-        console.log("saved sucssesfully");
+        res.send(req.body.name + "has registered with" + req.body.email);
     });
 });
+
+app.post("/login", (req,res) => {
+    connection.query("SELECT * FROM users WHERE email = ?", [req.body.email], (err, result) => {
+        if (result.length == 0) {
+            console.log("user not found");
+            return;
+        }
+
+        const itMach = bcrypt.compareSync(req.body.password, result[0].password)
+
+    if (itMach == true) {
+        res.send("login sucsessfully");
+        return;
+    } else {
+        res.send("wrong password");
+    }
+    });
+    
+    
+}); 
 
 app.listen(3000, () => {
     console.log("server ruiig o port 3000");
